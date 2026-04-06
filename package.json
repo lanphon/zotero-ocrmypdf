@@ -9,7 +9,12 @@
     "package": "node scripts/package.js",
     "release": "release-it"
   },
-  "keywords": ["zotero", "plugin", "ocr", "pdf"],
+  "keywords": [
+    "zotero",
+    "plugin",
+    "ocr",
+    "pdf"
+  ],
   "author": "xinzhao",
   "license": "MIT",
   "config": {
@@ -21,11 +26,11 @@
     "updaterdf": "https://raw.githubusercontent.com/xinzhao/zotero-patent/main/update.rdf"
   },
   "dependencies": {
-    "zotero-plugin-toolkit": "^3.0.0"
+    "zotero-plugin-toolkit": "^5.1.2"
   },
   "devDependencies": {
     "esbuild": "^0.20.0",
-    "zotero-types": "^1.0.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "zotero-types": "^1.0.0"
   }
 }

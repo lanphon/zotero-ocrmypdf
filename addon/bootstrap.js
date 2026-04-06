@@ -1,52 +1,53 @@
-// Zotero Plugin Bootstrap
-// Patent PDF OCR - Convert scanned PDFs to searchable PDFs using ocrmypdf
+/**
+ * Bootstrap for Patent PDF OCR plugin.
+ * Based on Zotero official Make It Red example and Zotero 7 docs.
+ */
 
-const { XPCOM } = ChromeUtils.import("resource://gre/modules/XPCOM.jsm");
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+var chromeHandle;
 
-var PatentOCR = {
-  startup: async function (data, reason) {
-    // Wait for Zotero to be ready
-    await Zotero.initializationPromise;
-    
-    // Load the plugin
-    const rootURI = data.resourceURI.spec;
-    Zotero.PatentOCR = {
-      path: rootURI,
-      data: { env: "bootstrap" }
-    };
-    
-    // Import and initialize the plugin module
-    const plugin = await import(rootURI + "chrome/content/scripts/index.js");
-    if (plugin.default && plugin.default.init) {
-      plugin.default.init();
-    }
-  },
+function install(data, reason) {}
 
-  shutdown: function (data, reason) {
-    // Cleanup
-    if (Zotero.PatentOCR && Zotero.PatentOCR.hooks && Zotero.PatentOCR.hooks.onShutdown) {
-      Zotero.PatentOCR.hooks.onShutdown(reason);
-    }
-    delete Zotero.PatentOCR;
-  },
+async function startup({ id, version, resourceURI, rootURI }, reason) {
+  var aomStartup = Components.classes[
+    "@mozilla.org/addons/addon-manager-startup;1"
+  ].getService(Components.interfaces.amIAddonManagerStartup);
+  var manifestURI = Services.io.newURI(rootURI + "manifest.json");
+  chromeHandle = aomStartup.registerChrome(manifestURI, [
+    ["content", "__addonRef__", rootURI + "chrome/content/"],
+  ]);
 
-  install: function (data, reason) {},
-  uninstall: function (data, reason) {}
-};
+  /**
+   * Global variables for plugin code.
+   */
+  const ctx = { rootURI };
+  ctx._globalThis = ctx;
 
-function startup(data, reason) {
-  PatentOCR.startup(data, reason);
+  Services.scriptloader.loadSubScript(
+    `${rootURI}chrome/content/scripts/__addonRef__.js`,
+    ctx,
+  );
+  await Zotero.__addonInstance__.hooks.onStartup();
 }
 
-function shutdown(data, reason) {
-  PatentOCR.shutdown(data, reason);
+async function onMainWindowLoad({ window }, reason) {
+  await Zotero.__addonInstance__?.hooks.onMainWindowLoad(window);
 }
 
-function install(data, reason) {
-  PatentOCR.install(data, reason);
+async function onMainWindowUnload({ window }, reason) {
+  await Zotero.__addonInstance__?.hooks.onMainWindowUnload(window);
 }
 
-function uninstall(data, reason) {
-  PatentOCR.uninstall(data, reason);
+async function shutdown({ id, version, resourceURI, rootURI }, reason) {
+  if (reason === APP_SHUTDOWN) {
+    return;
+  }
+
+  await Zotero.__addonInstance__?.hooks.onShutdown();
+
+  if (chromeHandle) {
+    chromeHandle.destruct();
+    chromeHandle = null;
+  }
 }
+
+function uninstall(data, reason) {}

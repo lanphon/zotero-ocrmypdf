@@ -4,21 +4,18 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "lib": ["ES2020", "DOM"],
-    "strict": true,
+    "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": false,
-    "declarationMap": false,
-    "outDir": "./addon/chrome/content/scripts",
+    "outDir": "./builds/addon/chrome/content/scripts",
     "rootDir": "./src",
     "baseUrl": ".",
-    "paths": {
-      "*": ["typing/*"]
-    },
-    "types": ["zotero", "zotero-plugin-toolkit"]
+    "types": ["zotero-types"],
+    "typeRoots": ["./node_modules/@types", "./node_modules"]
   },
-  "include": ["src/**/*", "typing/**/*"],
-  "exclude": ["node_modules", "builds"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "builds", "addon"]
 }
