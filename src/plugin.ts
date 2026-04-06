@@ -3,7 +3,7 @@
 
 "use strict";
 
-import { config } from "../../package.json";
+import { config } from "../package.json";
 import { getString } from "../utils/locale";
 
 class PatentOCRPlugin {

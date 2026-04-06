@@ -2,7 +2,15 @@ const esbuild = require("esbuild");
 const fs = require("fs");
 const path = require("path");
 
-const config = require("./package.json").config;
+// Load plugin config from project root package.json (not scripts/ package.json)
+let config;
+try {
+  config = require("path").resolve(__dirname, "..", "package.json");
+  config = require(config).config; // fallback to project root config
+} catch (e) {
+  // If anything goes wrong, leave config undefined and continue
+  config = {};
+}
 
 async function build() {
   // Clean builds directory
