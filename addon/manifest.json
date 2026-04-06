@@ -1,0 +1,9 @@
+{
+  "id": "zotero-patent@xinzhao.github.com",
+  "name": "Patent PDF OCR",
+  "description": "Convert scanned PDFs to searchable PDFs using ocrmypdf",
+  "version": "0.0.1",
+  "author": "xinzhao",
+  "homepage": "https://github.com/xinzhao/zotero-patent",
+  "allowPlatforms": ["win32", "mac", "linux"]
+}

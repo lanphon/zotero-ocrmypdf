@@ -1,0 +1,31 @@
+{
+  "name": "zotero-patent",
+  "version": "0.0.1",
+  "description": "Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "build-dev": "NODE_ENV=development node scripts/build.js",
+    "package": "node scripts/package.js",
+    "release": "release-it"
+  },
+  "keywords": ["zotero", "plugin", "ocr", "pdf"],
+  "author": "xinzhao",
+  "license": "MIT",
+  "config": {
+    "addonName": "Patent PDF OCR",
+    "addonID": "zotero-patent@xinzhao.github.com",
+    "addonRef": "zotero-patent",
+    "addonInstance": "PatentOCR",
+    "releasepage": "https://github.com/xinzhao/zotero-patent/releases",
+    "updaterdf": "https://raw.githubusercontent.com/xinzhao/zotero-patent/main/update.rdf"
+  },
+  "dependencies": {
+    "zotero-plugin-toolkit": "^3.0.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0",
+    "zotero-types": "^1.0.0",
+    "typescript": "^5.3.0"
+  }
+}
