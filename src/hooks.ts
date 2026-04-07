@@ -32,13 +32,13 @@ async function onMainWindowLoad(win: any) {
 
 async function onMainWindowUnload(win: any) {
   registeredWindows.delete(win);
-  const existing = win.document.getElementById("zotero-patent-ocr-item");
+  const existing = win.document.getElementById("zotero-ocrmypdf-item");
   if (existing) existing.remove();
 }
 
 function onShutdown() {
   for (const win of Zotero.getMainWindows()) {
-    const existing = win.document.getElementById("zotero-patent-ocr-item");
+    const existing = win.document.getElementById("zotero-ocrmypdf-item");
     if (existing) existing.remove();
   }
   addon.data.alive = false;
@@ -62,9 +62,9 @@ function registerMenuItem(win: any) {
     doc.addEventListener("popupshowing", (event: Event) => {
       const popup = event.target as Element;
       if (popup.id !== "zotero-itemmenu") return;
-      if (doc.getElementById("zotero-patent-ocr-item")) return;
+      if (doc.getElementById("zotero-ocrmypdf-item")) return;
       const menuitem = (doc as any).createXULElement("menuitem");
-      menuitem.setAttribute("id", "zotero-patent-ocr-item");
+      menuitem.setAttribute("id", "zotero-ocrmypdf-item");
       menuitem.setAttribute("label", "Convert to Searchable PDF");
       menuitem.setAttribute("accesskey", "O");
       menuitem.setAttribute("icon", "chrome://zotero-patent/content/icons/favicon.svg");

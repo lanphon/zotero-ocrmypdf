@@ -4,7 +4,7 @@
   "version": "__buildVersion__",
   "description": "Convert scanned PDFs to searchable PDFs using ocrmypdf",
   "homepage_url": "__homepage__",
-  "author": "xinzhao",
+  "author": "lanphon",
   "icons": {
     "48": "chrome/content/icons/favicon.svg",
     "96": "chrome/content/icons/favicon.svg"

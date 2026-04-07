@@ -1,4 +1,4 @@
-# Zotero Patent PDF OCR
+# Zotero ocrmypdf
 
 A Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf.
 
@@ -17,17 +17,18 @@ A Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf.
 
 ## Installation
 
-1. Build the plugin from source:
+1. Download the latest `.xpi` from the [Releases](https://github.com/lanphon/zotero-ocrmypdf/releases) page
+
+2. In Zotero, go to **Tools > Add-ons**, click the gear icon, and select **Install Add-on From File**
+
+3. Select the downloaded `.xpi` file
+
+Or build from source:
    ```bash
    npm install
    npm run build
    ```
-
-2. The built `.xpi` file will be in the `builds` folder
-
-3. In Zotero, go to **Tools > Add-ons**, click the gear icon, and select **Install Add-on From File**
-
-4. Navigate to `builds/zotero-patent.xpi` and install
+   The built `.xpi` will be at `builds/zotero-ocrmypdf.xpi`
 
 ## Usage
 
@@ -39,9 +40,9 @@ A Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf.
 
 In Zotero's config editor (`about:config`), you can set:
 
-- `zotero-patent.ocrpath`: Path to ocrmypdf executable (auto-detected by default)
-- `zotero-patent.language`: OCR language code (default: "eng")
-- `zotero-patent.deskew`: Enable deskewing (default: true)
+- `zotero-ocrmypdf.ocrpath`: Path to ocrmypdf executable (auto-detected by default)
+- `zotero-ocrmypdf.language`: OCR language code (default: "eng")
+- `zotero-ocrmypdf.deskew`: Enable deskewing (default: true)
 
 ## Development
 

@@ -1,5 +1,5 @@
 {
-  "name": "zotero-patent",
+  "name": "zotero-ocrmypdf",
   "version": "0.1.0",
   "description": "Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf",
   "main": "src/index.ts",
@@ -15,15 +15,15 @@
     "ocr",
     "pdf"
   ],
-  "author": "xinzhao",
+  "author": "lanphon",
   "license": "MIT",
   "config": {
-    "addonName": "Patent PDF OCR",
-    "addonID": "zotero-patent@xinzhao.github.com",
-    "addonRef": "zotero-patent",
-    "addonInstance": "PatentOCR",
-    "releasepage": "https://github.com/xinzhao/zotero-patent/releases",
-    "updaterdf": "https://raw.githubusercontent.com/xinzhao/zotero-patent/main/update.rdf"
+    "addonName": "PDF OCR (ocrmypdf)",
+    "addonID": "zotero-ocrmypdf@lanphon.github.com",
+    "addonRef": "zotero-ocrmypdf",
+    "addonInstance": "PDFOCR",
+    "releasepage": "https://github.com/lanphon/zotero-ocrmypdf/releases",
+    "updaterdf": "https://raw.githubusercontent.com/lanphon/zotero-ocrmypdf/main/update.rdf"
   },
   "dependencies": {
     "zotero-plugin-toolkit": "^5.1.2"

@@ -12,11 +12,11 @@ try {
   config = {};
 }
 
-const addonName     = config.addonName     || "PatentPDFOCR";
-const addonRef     = config.addonRef      || "zotero-patent";
-const addonID      = config.addonID        || "zotero-patent@xinzhao.github.com";
-const addonInstance = config.addonInstance  || "PatentOCR";
-const homepage     = config.homepage       || "https://github.com/xinzhao/zotero-patent";
+const addonName     = config.addonName     || "PDF OCR (ocrmypdf)";
+const addonRef     = config.addonRef      || "zotero-ocrmypdf";
+const addonID      = config.addonID        || "zotero-ocrmypdf@lanphon.github.com";
+const addonInstance = config.addonInstance  || "PDFOCR";
+const homepage     = config.homepage       || "https://github.com/lanphon/zotero-ocrmypdf";
 
 async function build() {
   const buildsDir = "./builds";
@@ -67,7 +67,7 @@ async function build() {
         "__addonID__":       addonID,
         "__addonInstance__": addonInstance,
         "__homepage__":      homepage,
-        "__updateURL__":     `https://github.com/xinzhao/zotero-patent/releases/latest/download/update.rdf`,
+        "__updateURL__":     `https://github.com/lanphon/zotero-ocrmypdf/releases/latest/download/update.rdf`,
       });
     }
   });
