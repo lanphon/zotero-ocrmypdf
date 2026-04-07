@@ -89,7 +89,7 @@ async function onConvertOCR() {
     return;
   }
 
-  const ocrPath = (Zotero as any).Prefs.get("zotero-patent.ocrpath") || detectOcrPath();
+  const ocrPath = (Zotero as any).Prefs.get("zotero-patent.ocrpath") || await detectOcrPath();
   const language = (Zotero as any).Prefs.get("zotero-patent.language") || "eng";
   const deskew = (Zotero as any).Prefs.get("zotero-patent.deskew") !== false;
 
@@ -100,15 +100,18 @@ async function onConvertOCR() {
     if (!inputPath) continue;
     const outputPath = inputPath.replace(".pdf", ".ocr.pdf");
 
-    const args = ["--language", language, deskew ? "--deskew" : "--no-deskew", "-o", outputPath, inputPath];
+    // Newer ocrmypdf (v15+): input/output are positional, --force overwrites existing output
+    const args = [inputPath, outputPath, "-l", language, deskew ? "--deskew" : "--no-deskew", "--force"];
 
     showProgress(`OCR: ${item.getDisplayTitle()}`, "default");
 
     try {
+      Zotero.debug(`[${config.addonName}] Running: ${ocrPath} ${args.join(" ")}`);
+
       const proc = await Subprocess.call({
         command: ocrPath,
         arguments: args,
-        stderr: "stdout", // merge stderr into stdout for easier reading
+        stderr: "stdout",
       });
 
       let output = "";
@@ -122,9 +125,11 @@ async function onConvertOCR() {
         await item.replaceFile(outputPath);
         showProgress(`OCR done: ${item.getDisplayTitle()}`, "success");
       } else {
-        showProgress(`OCR failed (exit ${exitCode}): ${output}`, "error");
+        Zotero.debug(`[${config.addonName}] ocrmypdf stderr+stdout: ${output}`);
+        showProgress(`OCR failed (exit ${exitCode}): ${output.substring(0, 200)}`, "error");
       }
     } catch (e: any) {
+      Zotero.debug(`[${config.addonName}] ocrmypdf error: ${e.message}`);
       showProgress(`Error: ${e.message}`, "error");
     }
   }
@@ -136,10 +141,44 @@ function showProgress(text: string, type: "default" | "success" | "error" | "war
     .show();
 }
 
-function detectOcrPath(): string {
-  if (Zotero.isMac) return "/usr/local/bin/ocrmypdf";
-  if (Zotero.isWin) return "ocrmypdf";
-  return "/usr/bin/ocrmypdf";
+async function detectOcrPath(): Promise<string> {
+  const { Subprocess } = ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs");
+
+  try {
+    // Use login shell to match user's terminal environment (PATH, aliases, etc.)
+    const shell = Zotero.isWin ? "cmd" : (Zotero.isMac ? "/bin/zsh" : "/bin/bash");
+    const shellArgs = Zotero.isWin
+      ? ["/c", "where ocrmypdf"]
+      : ["-l", "-c", "which ocrmypdf 2>/dev/null || type ocrmypdf 2>/dev/null"];
+
+    const proc = await Subprocess.call({
+      command: shell,
+      arguments: shellArgs,
+      stdout: "pipe",
+      stderr: "pipe",
+      // Don't wait for stdin — close it immediately
+      stdin: "close",
+    });
+    let output = "";
+    let chunk;
+    while ((chunk = await proc.stdout.readString())) {
+      output += chunk;
+    }
+    await proc.wait();
+
+    if (Zotero.isWin) {
+      // `where` outputs path on each line — take first
+      const path = output.split("\n")[0].trim();
+      return path || "ocrmypdf";
+    }
+
+    // `which` or `type` output: /path/to/ocrmypdf or "ocrmypdf is /path/to/ocrmypdf"
+    const line = output.split("\n")[0].trim();
+    const match = line.match(/\/[\S]+$/);
+    return match ? match[0] : "ocrmypdf";
+  } catch {
+    return "ocrmypdf";
+  }
 }
 
 export default { onStartup, onShutdown, onMainWindowLoad, onMainWindowUnload, onNotify, onPrefsEvent, onShortcuts };
