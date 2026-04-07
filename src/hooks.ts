@@ -108,10 +108,19 @@ async function onConvertOCR() {
     try {
       Zotero.debug(`[${config.addonName}] Running: ${ocrPath} ${args.join(" ")}`);
 
+      // Run through a login shell so ocrmypdf sees the same environment as the terminal
+      const shell = Zotero.isWin ? "cmd" : (Zotero.isMac ? "/bin/zsh" : "/bin/bash");
+      const cmdStr = [ocrPath, ...args].map((a) => `"${a}"`).join(" ");
+      const shellArgs = Zotero.isWin
+        ? ["/c", cmdStr]
+        : ["-l", "-c", cmdStr];
+
       const proc = await Subprocess.call({
-        command: ocrPath,
-        arguments: args,
+        command: shell,
+        arguments: shellArgs,
+        stdout: "pipe",
         stderr: "stdout",
+        stdin: "close",
       });
 
       let output = "";
@@ -122,7 +131,9 @@ async function onConvertOCR() {
       const { exitCode } = await proc.wait();
 
       if (exitCode === 0) {
-        await item.replaceFile(outputPath);
+        // Zotero 7+: use attachmentPath setter to point the attachment to the new file
+        item.attachmentPath = outputPath;
+        await item.saveTx();
         showProgress(`OCR done: ${item.getDisplayTitle()}`, "success");
       } else {
         Zotero.debug(`[${config.addonName}] ocrmypdf stderr+stdout: ${output}`);
@@ -151,6 +162,14 @@ async function detectOcrPath(): Promise<string> {
       ? ["/c", "where ocrmypdf"]
       : ["-l", "-c", "which ocrmypdf 2>/dev/null || type ocrmypdf 2>/dev/null"];
 
+    // Subprocess.env REPLACES the entire environment — include all needed vars
+    const env: Record<string, string> = {
+      PATH: "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      HOME: Services.env.get("HOME") || "",
+      USER: Services.env.get("USER") || "",
+      LANG: "en_US.UTF-8",
+    };
+
     const proc = await Subprocess.call({
       command: shell,
       arguments: shellArgs,
@@ -158,6 +177,7 @@ async function detectOcrPath(): Promise<string> {
       stderr: "pipe",
       // Don't wait for stdin — close it immediately
       stdin: "close",
+      env,
     });
     let output = "";
     let chunk;

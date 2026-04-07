@@ -1,6 +1,6 @@
 {
   "name": "zotero-patent",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf",
   "main": "src/index.ts",
   "scripts": {
