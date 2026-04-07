@@ -1,6 +1,8 @@
 import { config } from "../package.json";
 
-// ── Lifecycle hooks ───────────────────────────────────────────────────────────
+// Track registered windows to avoid double-registration in Zotero 9
+// where bootstrap calls onMainWindowLoad for ALL existing windows on startup
+const registeredWindows = new Set<any>();
 
 async function onStartup() {
   await Promise.all([
@@ -8,117 +10,119 @@ async function onStartup() {
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
-  addon.data.initialized = true;
-}
 
-async function onMainWindowLoad(win: Window): Promise<void> {
-  const doc = win.document;
-
-  // Register context menu: inject a menuitem into the item-context-menu popup
-  const popup = doc.getElementById("zotero-itemmenu");
-  if (popup) {
-    const menuitem = doc.createXULElement("menuitem");
-    menuitem.setAttribute("id", "zotero-patent-ocr-item");
-    menuitem.setAttribute("label", "Convert to Searchable PDF");
-    menuitem.setAttribute("accesskey", "O");
-    menuitem.setAttribute(
-      "icon",
-      `chrome://${config.addonRef}/content/icons/favicon.svg`,
-    );
-    menuitem.addEventListener("command", () => onConvertOCR());
-    popup.appendChild(menuitem);
+  // Register menu on ALL currently open windows (official template pattern)
+  const windows = Zotero.getMainWindows();
+  Zotero.debug(`[${config.addonName}] onStartup: found ${windows.length} open windows`);
+  for (const win of windows) {
+    registerMenuItem(win);
   }
 
-  // Register keyboard shortcut: Ctrl+Shift+O on the main window
-  win.addEventListener(
-    "keydown",
-    (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toUpperCase() === "O") {
-        e.preventDefault();
-        onConvertOCR();
-      }
-    },
-    false,
-  );
+  addon.data.initialized = true;
+  Zotero.debug(`[${config.addonName}] Startup complete, registered ${windows.length} windows`);
 }
 
-async function onMainWindowUnload(win: Window): Promise<void> {
-  // Remove injected menuitem
-  const doc = win.document;
-  const menuitem = doc.getElementById("zotero-patent-ocr-item");
-  if (menuitem) menuitem.remove();
+// onMainWindowLoad is called by bootstrap for new windows AND existing windows on startup.
+// Only register if not already registered to avoid double-registration.
+async function onMainWindowLoad(win: any) {
+  if (!registeredWindows.has(win)) {
+    registerMenuItem(win);
+  }
 }
 
-function onShutdown(): void {
+async function onMainWindowUnload(win: any) {
+  registeredWindows.delete(win);
+  const existing = win.document.getElementById("zotero-patent-ocr-item");
+  if (existing) existing.remove();
+}
+
+function onShutdown() {
+  for (const win of Zotero.getMainWindows()) {
+    const existing = win.document.getElementById("zotero-patent-ocr-item");
+    if (existing) existing.remove();
+  }
   addon.data.alive = false;
   // @ts-expect-error
   delete Zotero[addon.data.config.addonInstance];
 }
 
-async function onNotify(
-  event: string,
-  type: string,
-  ids: Array<string | number>,
-  extraData: { [key: string]: any },
-) {
-  // @ts-expect-error
-  addon.data.ztoolkit?.basicOptions?.log?.prefix;
+async function onNotify(event: string, type: string, ids: Array<string | number>, extraData: any) {
   Zotero.debug(`[${config.addonName}] notify ${event} ${type}`);
 }
 
-async function onPrefsEvent(type: string, data: { [key: string]: any }) {
-  // no-op
-}
+async function onPrefsEvent(type: string, data: any) {}
+function onShortcuts(type: string) {}
 
-function onShortcuts(type: string) {
-  // no-op
-}
+function registerMenuItem(win: any) {
+  try {
+    const doc = win.document;
 
-// ── OCR ─────────────────────────────────────────────────────────────────────
+    // Listen at document level for ALL popupshowing events.
+    // This avoids timing issues with lazily-created menu elements.
+    doc.addEventListener("popupshowing", (event: Event) => {
+      const popup = event.target as Element;
+      if (popup.id !== "zotero-itemmenu") return;
+      if (doc.getElementById("zotero-patent-ocr-item")) return;
+      const menuitem = (doc as any).createXULElement("menuitem");
+      menuitem.setAttribute("id", "zotero-patent-ocr-item");
+      menuitem.setAttribute("label", "Convert to Searchable PDF");
+      menuitem.setAttribute("accesskey", "O");
+      menuitem.setAttribute("icon", "chrome://zotero-patent/content/icons/favicon.svg");
+      menuitem.addEventListener("command", () => onConvertOCR());
+      popup.appendChild(menuitem);
+      Zotero.debug(`[${config.addonName}] Menu item registered (${popup.children.length} total children)`);
+    });
+
+    Zotero.debug(`[${config.addonName}] Document-level popupshowing listener attached`);
+  } catch (e: any) {
+    Zotero.debug(`[${config.addonName}] registerMenuItem error: ${e.message}`);
+  }
+}
 
 async function onConvertOCR() {
   const ZoteroPane = (Zotero as any).getActiveZoteroPane();
   const items: any[] = ZoteroPane.getSelectedItems();
-  const pdfItems = items.filter(
-    (item: any) => item.attachmentMIMEType === "application/pdf",
-  );
+  const pdfItems = items.filter((item: any) => item.attachmentMIMEType === "application/pdf");
 
   if (pdfItems.length === 0) {
     showProgress("No PDF items selected", "warning");
     return;
   }
 
-  const ocrPath =
-    (Zotero as any).Prefs.get("zotero-patent.ocrpath") || detectOcrPath();
-  const language =
-    (Zotero as any).Prefs.get("zotero-patent.language") || "eng";
+  const ocrPath = (Zotero as any).Prefs.get("zotero-patent.ocrpath") || detectOcrPath();
+  const language = (Zotero as any).Prefs.get("zotero-patent.language") || "eng";
   const deskew = (Zotero as any).Prefs.get("zotero-patent.deskew") !== false;
+
+  const { Subprocess } = ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs");
 
   for (const item of pdfItems) {
     const inputPath = item.getFilePath();
     if (!inputPath) continue;
-
     const outputPath = inputPath.replace(".pdf", ".ocr.pdf");
 
-    const args = [
-      "--language", language,
-      deskew ? "--deskew" : "--no-deskew",
-      "-o", outputPath,
-      inputPath,
-    ];
+    const args = ["--language", language, deskew ? "--deskew" : "--no-deskew", "-o", outputPath, inputPath];
 
     showProgress(`OCR: ${item.getDisplayTitle()}`, "default");
 
     try {
-      const { stdout, stderr, exitCode } = await Zotero.File.execAsync(
-        ocrPath,
-        args,
-      );
+      const proc = await Subprocess.call({
+        command: ocrPath,
+        arguments: args,
+        stderr: "stdout", // merge stderr into stdout for easier reading
+      });
+
+      let output = "";
+      let chunk;
+      while ((chunk = await proc.stdout.readString())) {
+        output += chunk;
+      }
+      const { exitCode } = await proc.wait();
+
       if (exitCode === 0) {
         await item.replaceFile(outputPath);
         showProgress(`OCR done: ${item.getDisplayTitle()}`, "success");
       } else {
-        showProgress(`OCR failed: ${stderr || "unknown error"}`, "error");
+        showProgress(`OCR failed (exit ${exitCode}): ${output}`, "error");
       }
     } catch (e: any) {
       showProgress(`Error: ${e.message}`, "error");
@@ -126,13 +130,8 @@ async function onConvertOCR() {
   }
 }
 
-function showProgress(
-  text: string,
-  type: "default" | "success" | "error" | "warning" = "default",
-) {
-  new (addon.data.ztoolkit.ProgressWindow as any)(config.addonName, {
-    closeOnClick: true,
-  })
+function showProgress(text: string, type: "default" | "success" | "error" | "warning" = "default") {
+  new (addon.data.ztoolkit.ProgressWindow as any)(config.addonName, { closeOnClick: true })
     .createLine({ text, type })
     .show();
 }
@@ -143,12 +142,4 @@ function detectOcrPath(): string {
   return "/usr/bin/ocrmypdf";
 }
 
-export default {
-  onStartup,
-  onShutdown,
-  onMainWindowLoad,
-  onMainWindowUnload,
-  onNotify,
-  onPrefsEvent,
-  onShortcuts,
-};
+export default { onStartup, onShutdown, onMainWindowLoad, onMainWindowUnload, onNotify, onPrefsEvent, onShortcuts };
