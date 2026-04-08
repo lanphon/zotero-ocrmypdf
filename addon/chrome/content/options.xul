@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<head>
+  <meta charset="utf-8"/>
+  <link rel="stylesheet" href="chrome://zotero/skin/overlay.css"/>
+  <script src="chrome://zotero/content/include.js"/>
+  <style>
+    body { font-family: -moz-use-system-font; font-size: 13px; padding: 20px; background: transparent; margin: 0; }
+    h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
+    .row { display: flex; align-items: center; margin-bottom: 12px; gap: 12px; }
+    label { flex: 0 0 140px; text-align: right; color: #333; }
+    input[type=text] { flex: 1; padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; }
+    input[type=text]:focus { border-color: #4d90fe; outline: none; }
+    .hint { font-size: 11px; color: #888; margin-left: 4px; }
+    input[type=checkbox] { width: 16px; height: 16px; }
+    .actions { margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end; }
+    button { padding: 6px 16px; border-radius: 4px; border: 1px solid #ccc; background: #f4f4f4; cursor: pointer; font-size: 13px; }
+    button:hover { background: #e8e8e8; }
+    button.primary { background: #4d90fe; color: white; border-color: #4d90fe; }
+    button.primary:hover { background: #357abd; }
+    .saved { color: green; font-size: 12px; margin-left: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <h2>PDF OCR (ocrmypdf)</h2>
+
+  <div class="row">
+    <label for="language">Languages</label>
+    <input type="text" id="language" placeholder="eng"/>
+    <span class="hint">e.g. eng, chi_sim+eng, deu+eng</span>
+  </div>
+
+  <div class="row">
+    <label for="deskew">
+      <input type="checkbox" id="deskew" checked/>
+      Deskew
+    </label>
+  </div>
+
+  <div class="actions">
+    <button id="reset">Reset</button>
+    <button id="cancel">Cancel</button>
+    <button id="save" class="primary">Save</button>
+    <span class="saved" id="saved">Saved!</span>
+  </div>
+
+  <script>
+    (async () => {
+      const PREFIX = "zotero-ocrmypdf.";
+
+      const language = document.getElementById("language");
+      const deskew = document.getElementById("deskew");
+      const saveBtn = document.getElementById("save");
+      const cancelBtn = document.getElementById("cancel");
+      const resetBtn = document.getElementById("reset");
+      const savedMsg = document.getElementById("saved");
+
+      // Load current values
+      language.value = Zotero.Prefs.get(PREFIX + "language") || "eng";
+      deskew.checked = Zotero.Prefs.get(PREFIX + "deskew") !== false;
+
+      saveBtn.addEventListener("click", () => {
+        Zotero.Prefs.set(PREFIX + "language", language.value.trim() || "eng");
+        Zotero.Prefs.set(PREFIX + "deskew", deskew.checked);
+        savedMsg.style.display = "inline";
+        setTimeout(() => { savedMsg.style.display = "none"; }, 2000);
+      });
+
+      cancelBtn.addEventListener("click", () => {
+        window.close();
+      });
+
+      resetBtn.addEventListener("click", () => {
+        language.value = "eng";
+        deskew.checked = true;
+      });
+    })();
+  </script>
+</body>
+</html>
