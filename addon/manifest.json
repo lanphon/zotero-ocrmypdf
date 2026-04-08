@@ -5,7 +5,6 @@
   "description": "Convert scanned PDFs to searchable PDFs using ocrmypdf",
   "homepage_url": "__homepage__",
   "author": "lanphon",
-  "optionsURL": "chrome://__addonRef__/content/options.xul",
   "icons": {
     "48": "chrome/content/icons/favicon.svg",
     "96": "chrome/content/icons/favicon.svg"
