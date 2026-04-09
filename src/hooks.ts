@@ -54,15 +54,12 @@ async function onPrefsEvent(type: string, data: any) {}
 function onShortcuts(type: string) {}
 
 function registerMenuItem(win: any) {
-  try {
-    const doc = win.document;
+  const doc = win.document;
 
-    // Listen at document level for ALL popupshowing events.
-    // This avoids timing issues with lazily-created menu elements.
-    doc.addEventListener("popupshowing", (event: Event) => {
-      const popup = event.target as Element;
-      if (popup.id !== "zotero-itemmenu") return;
-      if (doc.getElementById("zotero-ocrmypdf-item")) return;
+  doc.addEventListener("popupshowing", (event: Event) => {
+    const popup = event.target as Element;
+
+    if (popup.id === "zotero-itemmenu" && !doc.getElementById("zotero-ocrmypdf-item")) {
       const menuitem = (doc as any).createXULElement("menuitem");
       menuitem.setAttribute("id", "zotero-ocrmypdf-item");
       menuitem.setAttribute("label", "Convert to Searchable PDF");
@@ -70,88 +67,40 @@ function registerMenuItem(win: any) {
       menuitem.setAttribute("icon", "chrome://zotero-ocrmypdf/content/icons/favicon.svg");
       menuitem.addEventListener("command", () => onConvertOCR());
       popup.appendChild(menuitem);
-      Zotero.debug(`[${config.addonName}] Menu item registered (${popup.children.length} total children)`);
-    });
+    }
 
-    const toolsMenu = doc.getElementById("menu_ToolsPopup");
-    if (toolsMenu && !doc.getElementById("zotero-ocrmypdf-settings-item")) {
+    if (popup.id === "menu_ToolsPopup" && !doc.getElementById("zotero-ocrmypdf-settings-item")) {
       const sep = (doc as any).createXULElement("menuseparator");
       sep.id = "zotero-ocrmypdf-settings-sep";
       const settingsItem = (doc as any).createXULElement("menuitem");
       settingsItem.id = "zotero-ocrmypdf-settings-item";
-      settingsItem.setAttribute("label", `${config.addonName} Settings`);
+      settingsItem.setAttribute("label", config.addonName + " Settings");
       settingsItem.setAttribute("accesskey", "S");
       settingsItem.addEventListener("command", () => openSettings());
-      toolsMenu.appendChild(sep);
-      toolsMenu.appendChild(settingsItem);
+      popup.appendChild(sep);
+      popup.appendChild(settingsItem);
     }
-
-    Zotero.debug(`[${config.addonName}] Document-level popupshowing listener attached`);
-  } catch (e: any) {
-    Zotero.debug(`[${config.addonName}] registerMenuItem error: ${e.message}`);
-  }
+  });
 }
 
 function openSettings() {
-  const win = Zotero.getMainWindow();
-  if (!win) return;
-  const doc = win.document;
-
   const PREFIX = "zotero-ocrmypdf.";
+  const currentLang = String(Zotero.Prefs.get(PREFIX + "language") || "eng");
 
-  const existing = doc.getElementById("zotero-ocrmypdf-settings-panel");
-  if (existing) { existing.remove(); }
-
-  const panel = doc.createElement("div");
-  panel.id = "zotero-ocrmypdf-settings-panel";
-  panel.style.cssText = `
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    z-index: 99999; background: #fff; border: 1px solid #ccc; border-radius: 8px;
-    padding: 20px; width: 320px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px;
-  `;
-
-  const overlay = doc.createElement("div");
-  overlay.id = "zotero-ocrmypdf-settings-overlay";
-  overlay.style.cssText = "position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.3);";
-  overlay.addEventListener("click", () => { overlay.remove(); panel.remove(); }, { once: true });
-
-  panel.innerHTML = `
-    <div style="margin-bottom:12px;font-weight:600;font-size:15px;">PDF OCR (ocrmypdf) Settings</div>
-    <div style="margin-bottom:6px;font-weight:500;">Languages</div>
-    <input type="text" id="zotero-ocrmypdf-lang" value="${Zotero.Prefs.get(PREFIX + "language") || "eng"}"
-      style="width:100%;padding:6px 8px;box-sizing:border-box;margin-bottom:4px;border:1px solid #ccc;border-radius:4px;"/>
-    <div style="font-size:11px;color:#888;margin-bottom:12px;">e.g. eng, chi_sim+eng, deu+eng</div>
-    <label style="display:flex;align-items:center;gap:6px;margin-bottom:16px;cursor:pointer;">
-      <input type="checkbox" id="zotero-ocrmypdf-deskew" ${Zotero.Prefs.get(PREFIX + "deskew") !== false ? "checked" : ""}/>
-      Deskew pages
-    </label>
-    <div style="display:flex;gap:6px;justify-content:flex-end;border-top:1px solid #eee;padding-top:12px;">
-      <button id="zotero-ocrmypdf-reset" style="padding:6px 14px;border-radius:4px;border:1px solid #ccc;background:#f4f4f4;cursor:pointer;">Reset</button>
-      <button id="zotero-ocrmypdf-close" style="padding:6px 14px;border-radius:4px;border:1px solid #ccc;background:#f4f4f4;cursor:pointer;">Cancel</button>
-      <button id="zotero-ocrmypdf-save" style="padding:6px 14px;border-radius:4px;border:none;background:#4d90fe;color:#fff;cursor:pointer;">Save</button>
-    </div>
-  `;
-
-  doc.body.appendChild(overlay);
-  doc.body.appendChild(panel);
-
-  const langInput = panel.querySelector("#zotero-ocrmypdf-lang") as HTMLInputElement;
-  const deskewInput = panel.querySelector("#zotero-ocrmypdf-deskew") as HTMLInputElement;
-
-  (panel.querySelector("#zotero-ocrmypdf-save") as HTMLElement).addEventListener("click", () => {
-    Zotero.Prefs.set(PREFIX + "language", langInput.value.trim() || "eng");
-    Zotero.Prefs.set(PREFIX + "deskew", deskewInput.checked);
-    showProgress("Settings saved", "success");
-    overlay.remove(); panel.remove();
-  });
-
-  (panel.querySelector("#zotero-ocrmypdf-close") as HTMLElement).addEventListener("click", () => { overlay.remove(); panel.remove(); });
-  (panel.querySelector("#zotero-ocrmypdf-reset") as HTMLElement).addEventListener("click", () => {
-    langInput.value = "eng"; deskewInput.checked = true;
-  });
-
-  langInput.focus();
+  for (const win of Zotero.getMainWindows()) {
+    if ((win as any).ZoteroPane) {
+      const lang = win.prompt(
+        "Language codes for ocrmypdf (e.g. eng, chi_sim+eng, deu+eng):",
+        currentLang,
+      );
+      if (lang !== null) {
+        Zotero.Prefs.set(PREFIX + "language", lang.trim() || "eng");
+        showProgress("Language saved: " + (lang.trim() || "eng"), "success");
+      }
+      return;
+    }
+  }
+  showProgress("No Zotero window found", "error");
 }
 
 async function onConvertOCR() {

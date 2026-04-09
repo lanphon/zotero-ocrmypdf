@@ -1,6 +1,6 @@
 {
   "name": "zotero-ocrmypdf",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Zotero plugin to convert scanned PDFs to searchable PDFs using ocrmypdf",
   "main": "src/index.ts",
   "scripts": {
